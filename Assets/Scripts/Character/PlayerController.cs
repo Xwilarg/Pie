@@ -6,7 +6,6 @@ namespace Pie
     public class PlayerController : MonoBehaviour
     {
         private Rigidbody2D _rb;
-        private SpriteRenderer _sr;
         private Animator _anim;
         private float _movement;
 
@@ -16,7 +15,6 @@ namespace Pie
         private void Start()
         {
             _rb = GetComponent<Rigidbody2D>();
-            _sr = GetComponent<SpriteRenderer>();
             _anim = GetComponent<Animator>();
         }
 
@@ -30,12 +28,12 @@ namespace Pie
             _movement = context.ReadValue<Vector2>().x;
             if (_movement < 0f)
             {
-                _sr.flipX = true;
+                transform.localScale = new Vector3(-1f, 1f, 1f);
                 _anim.SetBool("IsRunning", true);
             }
             else if (_movement > 0f)
             {
-                _sr.flipX = false;
+                transform.localScale = new Vector3(1f, 1f, 1f);
                 _anim.SetBool("IsRunning", true);
             }
             else
