@@ -7,6 +7,7 @@ namespace Pie
     {
         private Rigidbody2D _rb;
         private SpriteRenderer _sr;
+        private Animator _anim;
         private float _movement;
 
         private const float _distanceWithGround = .1f; // Used for jump raycast
@@ -16,6 +17,7 @@ namespace Pie
         {
             _rb = GetComponent<Rigidbody2D>();
             _sr = GetComponent<SpriteRenderer>();
+            _anim = GetComponent<Animator>();
         }
 
         private void FixedUpdate()
@@ -29,10 +31,16 @@ namespace Pie
             if (_movement < 0f)
             {
                 _sr.flipX = true;
+                _anim.SetBool("IsRunning", true);
             }
             else if (_movement > 0f)
             {
                 _sr.flipX = false;
+                _anim.SetBool("IsRunning", true);
+            }
+            else
+            {
+                _anim.SetBool("IsRunning", false);
             }
         }
 
