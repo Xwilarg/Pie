@@ -37,7 +37,7 @@ namespace Pie
         {
             if (_dashTimer > 0f)
             {
-                _rb.velocity = new Vector2(_dashSpeed * (_isDashingLeft ? -1f : 1f), _rb.velocity.y);
+                _rb.velocity = new Vector2(_dashSpeed * (_isDashingLeft ? -1f : 1f), 0f);
             }
             else
             {
@@ -122,7 +122,8 @@ namespace Pie
 
         public void OnJump(InputAction.CallbackContext context)
         {
-            if (context.action.phase != InputActionPhase.Started)
+            if (context.action.phase != InputActionPhase.Started
+                || _dashTimer >= 0f) // Can't jump if we are dashing
             {
                 return;
             }
