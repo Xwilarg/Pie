@@ -12,6 +12,9 @@ namespace Pie
         private const float _distanceWithGround = .1f; // Used for jump raycast
         private const float _jumpForce = 3.5f;
 
+        private bool _jump;
+        private bool _isGrounded;
+
         private void Start()
         {
             _rb = GetComponent<Rigidbody2D>();
@@ -21,6 +24,21 @@ namespace Pie
         private void FixedUpdate()
         {
             _rb.velocity = new Vector2(_movement, _rb.velocity.y);
+            if (_jump)
+            {
+                _rb.AddForce(Vector2.up * _jumpForce, ForceMode2D.Impulse);
+                _isGrounded = false;
+                _jump = false;
+                _anim.SetBool("IsJumping", true);
+            }
+            else if (!_isGrounded)
+            {
+                _isGrounded = CanJump();
+                if (_isGrounded)
+                {
+                    _anim.SetBool("IsJumping", false);
+                }
+            }
         }
 
         public void OnMove(InputAction.CallbackContext context)
@@ -48,11 +66,16 @@ namespace Pie
             {
                 return;
             }
-            var hit = Physics2D.Raycast(transform.position, Vector2.down, _distanceWithGround, LayerMask.GetMask("Wall"));
-            if (hit.collider != null)
+            if (_isGrounded)
             {
-                _rb.AddForce(Vector2.up * _jumpForce, ForceMode2D.Impulse);
+                _jump = true;
             }
+        }
+
+        private bool CanJump()
+        {
+            var hit = Physics2D.Raycast(transform.position, Vector2.down, _distanceWithGround, LayerMask.GetMask("Wall"));
+            return hit.collider != null;
         }
     }
 }
