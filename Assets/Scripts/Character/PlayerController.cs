@@ -9,6 +9,9 @@ namespace Pie
         private SpriteRenderer _sr;
         private float _movement;
 
+        private const float _distanceWithGround = .1f; // Used for jump raycast
+        private const float _jumpForce = 3.5f;
+
         private void Start()
         {
             _rb = GetComponent<Rigidbody2D>();
@@ -33,9 +36,17 @@ namespace Pie
             }
         }
 
-        public void OnJump(InputAction.CallbackContext _)
+        public void OnJump(InputAction.CallbackContext context)
         {
-            _rb.AddForce(Vector2.up, ForceMode2D.Impulse);
+            if (context.action.phase != InputActionPhase.Started)
+            {
+                return;
+            }
+            var hit = Physics2D.Raycast(transform.position, Vector2.down, _distanceWithGround, LayerMask.GetMask("Wall"));
+            if (hit.collider != null)
+            {
+                _rb.AddForce(Vector2.up * _jumpForce, ForceMode2D.Impulse);
+            }
         }
     }
 }
