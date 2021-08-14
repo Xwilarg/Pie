@@ -8,6 +8,7 @@ namespace Pie
         private Rigidbody2D _rb;
         private Animator _anim;
         private float _movement;
+        private float _baseGravityScale;
 
         // Jump information
         private const float _distanceWithGround = .1f; // Used for jump raycast
@@ -28,6 +29,8 @@ namespace Pie
         {
             _rb = GetComponent<Rigidbody2D>();
             _anim = GetComponent<Animator>();
+
+            _baseGravityScale = _rb.gravityScale;
         }
 
         private void FixedUpdate()
@@ -65,6 +68,7 @@ namespace Pie
                 if (_dashTimer <= 0f) // We are not dashing anymore, remove dashing animation
                 {
                     _anim.SetBool("IsDashing", false);
+                    _rb.gravityScale = _baseGravityScale;
                 }
             }
             if (_doubleTapDelay > 0f)
@@ -89,6 +93,7 @@ namespace Pie
                     _doubleTapDelay = 0f; // Reset delay
                     _isDashingLeft = _movement < 0f; // Set dashing direction (used for movements)
                     _anim.SetBool("IsDashing", true);
+                    _rb.gravityScale = 0f; // We disable gravity while dashing
                 }
                 else if (_movement != 0f)
                 {
