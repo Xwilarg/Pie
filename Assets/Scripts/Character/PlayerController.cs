@@ -1,17 +1,19 @@
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
-namespace Pie
+namespace Pie.Character
 {
+    [RequireComponent(typeof(Rigidbody2D), typeof(Animator))]
     public class PlayerController : MonoBehaviour
     {
         private Rigidbody2D _rb;
         private Animator _anim;
+        private TriggerDetector _jumpDetector;
         private float _movement;
         private float _baseGravityScale;
 
         // Jump information
-        private const float _distanceWithGround = .1f; // Used for jump raycast
         private const float _jumpForce = 3.5f;
         private bool _jump;
         private bool _isGrounded;
@@ -21,18 +23,38 @@ namespace Pie
         private float _dashTimer;
         private const float _dashTimerRef = .5f; // Duration of the dash in seconds
         private const float _dashSpeed = 3f;
+        private bool IsDashing
+        {
+            get
+            {
+                return _dashTimer > 0f;
+            }
+        }
 
         private void Start()
         {
             _rb = GetComponent<Rigidbody2D>();
             _anim = GetComponent<Animator>();
 
+            _jumpDetector = GetComponentInChildren<TriggerDetector>();
+            _jumpDetector.Tag = "Wall";
+            _jumpDetector.TriggerOn.AddListener(new UnityAction(() =>
+            {
+                Debug.Log("Outain");
+                _anim.SetBool("IsJumping", false);
+                _isGrounded = true;
+            }));
+            _jumpDetector.TriggerOff.AddListener(new UnityAction(() =>
+            {
+                _isGrounded = false;
+            }));
+
             _baseGravityScale = _rb.gravityScale;
         }
 
         private void FixedUpdate()
         {
-            if (_dashTimer > 0f)
+            if (IsDashing)
             {
                 _rb.velocity = _dashDirection * _dashSpeed;
             }
@@ -47,22 +69,14 @@ namespace Pie
                 _jump = false;
                 _anim.SetBool("IsJumping", true);
             }
-            else if (!_isGrounded)
-            {
-                _isGrounded = CanJump();
-                if (_isGrounded)
-                {
-                    _anim.SetBool("IsJumping", false);
-                }
-            }
         }
 
         private void Update()
         {
-            if (_dashTimer > 0f)
+            if (IsDashing)
             {
                 _dashTimer -= Time.deltaTime;
-                if (_dashTimer <= 0f) // We are not dashing anymore, remove dashing animation
+                if (!IsDashing) // We are not dashing anymore, remove dashing animation
                 {
                     _anim.SetBool("IsDashing", false);
                     _rb.gravityScale = _baseGravityScale;
@@ -73,7 +87,7 @@ namespace Pie
         public void OnDash(InputAction.CallbackContext context)
         {
             if (context.action.phase == InputActionPhase.Started
-                && _dashTimer <= 0f) // Can't dash while we are already dashing
+                && !IsDashing) // Can't dash while we are already dashing
             {
                 _dashTimer = _dashTimerRef; // Dashing
                 _anim.SetBool("IsDashing", true);
@@ -85,7 +99,7 @@ namespace Pie
         {
             var mov = context.ReadValue<Vector2>();
             // If we are not dashing we set the dashing direction to the current one
-            if (_dashTimer <= 0f && context.action.phase == InputActionPhase.Started)
+            if (_dashTimer <= 0f && context.action.phase == InputActionPhase.Performed)
             {
                 _dashDirection = mov.normalized;
             }
@@ -109,7 +123,7 @@ namespace Pie
         public void OnJump(InputAction.CallbackContext context)
         {
             if (context.action.phase != InputActionPhase.Started
-                || _dashTimer >= 0f) // Can't jump if we are dashing
+                || IsDashing) // Can't jump if we are dashing
             {
                 return;
             }
@@ -117,12 +131,6 @@ namespace Pie
             {
                 _jump = true;
             }
-        }
-
-        private bool CanJump()
-        {
-            var hit = Physics2D.Raycast(transform.position, Vector2.down, _distanceWithGround, LayerMask.GetMask("Wall"));
-            return hit.collider != null;
         }
     }
 }
