@@ -1,15 +1,20 @@
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 namespace Pie.Character
 {
-    [RequireComponent(typeof(Rigidbody2D), typeof(Animator))]
     public class PlayerController : MonoBehaviour
     {
+        [SerializeField]
+        private TriggerDetector _jumpDetector;
+        [SerializeField]
+        private TriggerDetector _leftWallDetector, _rightWallDetector;
+
         private Rigidbody2D _rb;
         private Animator _anim;
-        private TriggerDetector _jumpDetector;
+        private SpriteRenderer _sr;
         private float _movement;
         private float _baseGravityScale;
 
@@ -24,6 +29,9 @@ namespace Pie.Character
         private float _dashTimer;
         private const float _dashTimerRef = .5f; // Duration of the dash in seconds
         private const float _dashSpeed = 3f;
+
+        private bool? _isAgainstLeftWall;
+
         private bool IsDashing
         {
             get
@@ -34,11 +42,18 @@ namespace Pie.Character
 
         private void Start()
         {
-            _rb = GetComponent<Rigidbody2D>();
+            _rb = transform.parent.GetComponent<Rigidbody2D>();
             _anim = GetComponent<Animator>();
+            _sr = transform.parent.GetComponentInChildren<SpriteRenderer>();
 
-            _jumpDetector = GetComponentInChildren<TriggerDetector>();
+            Assert.IsNotNull(_jumpDetector, "Jump Detector needs to be assigned in the editor");
+            Assert.IsNotNull(_leftWallDetector, "Left Wall Detector needs to be assigned in the editor");
+            Assert.IsNotNull(_rightWallDetector, "Right Wall Detector needs to be assigned in the editor");
+
             _jumpDetector.Tag = "Wall";
+            _leftWallDetector.Tag = "Wall";
+            _rightWallDetector.Tag = "Wall";
+
             _jumpDetector.TriggerOn.AddListener(new UnityAction(() =>
             {
                 _anim.SetBool("IsJumping", false);
@@ -47,6 +62,28 @@ namespace Pie.Character
             _jumpDetector.TriggerOff.AddListener(new UnityAction(() =>
             {
                 _isGrounded = false;
+            }));
+
+            _leftWallDetector.TriggerOn.AddListener(new UnityAction(() =>
+            {
+                _anim.SetBool("IsAgainstWall", true);
+                _isAgainstLeftWall = true;
+            }));
+            _leftWallDetector.TriggerOff.AddListener(new UnityAction(() =>
+            {
+                _anim.SetBool("IsAgainstWall", false);
+                _isAgainstLeftWall = null;
+            }));
+
+            _rightWallDetector.TriggerOn.AddListener(new UnityAction(() =>
+            {
+                _anim.SetBool("IsAgainstWall", true);
+                _isAgainstLeftWall = false;
+            }));
+            _rightWallDetector.TriggerOff.AddListener(new UnityAction(() =>
+            {
+                _anim.SetBool("IsAgainstWall", false);
+                _isAgainstLeftWall = null;
             }));
 
             _baseGravityScale = _rb.gravityScale;
@@ -58,7 +95,7 @@ namespace Pie.Character
             {
                 if (_dashDirection.magnitude == 0f) // If dash direction is 0 we are going to the direction the character is looking at
                 {
-                    _rb.velocity = (transform.localScale.x == 1f ? Vector2.right : Vector2.left) * _dashSpeed;
+                    _rb.velocity = (_sr.flipX ? Vector2.left : Vector2.right) * _dashSpeed;
                 }
                 else
                 {
@@ -68,9 +105,13 @@ namespace Pie.Character
             else
             {
                 _rb.velocity = new Vector2(_movement, _rb.velocity.y);
-                if (_movement != 0)
+                if (!_isGrounded && _isAgainstLeftWall != null)
                 {
-                    transform.localScale = new Vector3(_movement > 0f ? 1f : -1f, 1f, 1f);
+                    _sr.flipX = _isAgainstLeftWall == false;
+                }
+                else if (_movement != 0)
+                {
+                    _sr.flipX = _movement < 0f;
                 }
             }
             if (_jump)
