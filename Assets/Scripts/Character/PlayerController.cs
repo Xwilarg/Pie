@@ -15,7 +15,7 @@ namespace Pie.Character
         private Rigidbody2D _rb;
         private Animator _anim;
         private SpriteRenderer _sr;
-        private float _movement;
+        private int _movement;
         private float _baseGravityScale;
 
         // Jump information
@@ -105,11 +105,13 @@ namespace Pie.Character
             else
             {
                 _rb.velocity = new Vector2(_movement, _rb.velocity.y);
+
+                // If character is against a wall we need to look at the opposite direction of the wall (only apply is not grounded)
                 if (!_isGrounded && _isAgainstLeftWall != null)
                 {
                     _sr.flipX = _isAgainstLeftWall == false;
                 }
-                else if (_movement != 0)
+                else if (_movement != 0) // Else we just look where we are going
                 {
                     _sr.flipX = _movement < 0f;
                 }
@@ -144,7 +146,22 @@ namespace Pie.Character
                 _dashTimer = _dashTimerRef; // Dashing
                 _anim.SetBool("IsDashing", true);
                 _rb.gravityScale = 0f; // We disable gravity while dashing
-                _dashDirection = _lastDirection;
+                if (_isGrounded)
+                {
+                    _dashDirection = _lastDirection;
+                }
+                else if (_isAgainstLeftWall == true)
+                {
+                    _dashDirection = Vector2.right;
+                }
+                else if (_isAgainstLeftWall == false)
+                {
+                    _dashDirection = Vector2.left;
+                }
+                else // Not against a wall
+                {
+                    _dashDirection = _lastDirection;
+                }
             }
         }
 
@@ -152,17 +169,21 @@ namespace Pie.Character
         {
             var mov = context.ReadValue<Vector2>();
             _lastDirection = mov.normalized;
-            _movement = mov.x;
-            if (_movement < 0f)
+
+            // Make sure movement is 1, -1 or 0 and not any other value between
+            if (mov.x < 0f)
             {
+                _movement = -1;
                 _anim.SetBool("IsRunning", true);
             }
-            else if (_movement > 0f)
+            else if (mov.x > 0f)
             {
+                _movement = 1;
                 _anim.SetBool("IsRunning", true);
             }
             else
             {
+                _movement = 0;
                 _anim.SetBool("IsRunning", false);
             }
         }
