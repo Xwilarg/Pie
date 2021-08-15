@@ -17,13 +17,10 @@ namespace Pie
         private bool _isGrounded;
 
         // Dash information
-        private bool _wasGoingLeft;
-        private bool _isDashingLeft;
+        private Vector2 _dashDirection;
         private float _dashTimer;
         private const float _dashTimerRef = .5f; // Duration of the dash in seconds
         private const float _dashSpeed = 3f;
-        private float _doubleTapDelay; // Delay between 2 press to double tap
-        private const float _doubleTapDelayRef = .5f; // Nb of seconds we have to double tap
 
         private void Start()
         {
@@ -37,7 +34,7 @@ namespace Pie
         {
             if (_dashTimer > 0f)
             {
-                _rb.velocity = new Vector2(_dashSpeed * (_isDashingLeft ? -1f : 1f), 0f);
+                _rb.velocity = _dashDirection * _dashSpeed;
             }
             else
             {
@@ -71,39 +68,28 @@ namespace Pie
                     _rb.gravityScale = _baseGravityScale;
                 }
             }
-            if (_doubleTapDelay > 0f)
+        }
+
+        public void OnDash(InputAction.CallbackContext context)
+        {
+            if (context.action.phase == InputActionPhase.Started
+                && _dashTimer <= 0f) // Can't dash while we are already dashing
             {
-                _doubleTapDelay -= Time.deltaTime;
+                _dashTimer = _dashTimerRef; // Dashing
+                _anim.SetBool("IsDashing", true);
+                _rb.gravityScale = 0f; // We disable gravity while dashing
             }
         }
 
         public void OnMove(InputAction.CallbackContext context)
         {
-            _movement = context.ReadValue<Vector2>().x;
-
-            // We only check for dash when we are pressing the button
-            if (context.action.phase == InputActionPhase.Started
-                && _dashTimer <= 0f) // Can't dash while we are already dashing
+            var mov = context.ReadValue<Vector2>();
+            // If we are not dashing we set the dashing direction to the current one
+            if (_dashTimer <= 0f && context.action.phase == InputActionPhase.Started)
             {
-                // Dash
-                if (_doubleTapDelay > 0f // Can we still double tap
-                    && ((_wasGoingLeft && _movement < 0f) || (!_wasGoingLeft && _movement > 0f))) // Are we going in same direction as previously
-                {
-                    _dashTimer = _dashTimerRef; // Dashing
-                    _doubleTapDelay = 0f; // Reset delay
-                    _isDashingLeft = _movement < 0f; // Set dashing direction (used for movements)
-                    _anim.SetBool("IsDashing", true);
-                    _rb.gravityScale = 0f; // We disable gravity while dashing
-                }
-                else if (_movement != 0f)
-                {
-                    _doubleTapDelay = _doubleTapDelayRef; // Reset double tap delay since we pressed a key
-                    _wasGoingLeft = _movement < 0f; // Old direction we were going to
-                }
+                _dashDirection = mov.normalized;
             }
-
-
-            // Movement
+            _movement = mov.x;
             if (_movement < 0f)
             {
                 transform.localScale = new Vector3(-1f, 1f, 1f);
