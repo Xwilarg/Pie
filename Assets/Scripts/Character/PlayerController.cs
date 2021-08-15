@@ -56,7 +56,14 @@ namespace Pie.Character
         {
             if (IsDashing)
             {
-                _rb.velocity = _dashDirection * _dashSpeed;
+                if (_dashDirection.magnitude == 0f) // If dash direction is 0 we are going to the direction the character is looking at
+                {
+                    _rb.velocity = (transform.localScale.x == 1f ? Vector2.right : Vector2.left) * _dashSpeed;
+                }
+                else
+                {
+                    _rb.velocity = _dashDirection * _dashSpeed;
+                }
             }
             else
             {
