@@ -19,7 +19,8 @@ namespace Pie.Character
         private bool _isGrounded;
 
         // Dash information
-        private Vector2 _dashDirection;
+        private Vector2 _lastDirection; // Last direction we went to
+        private Vector2 _dashDirection; // Used while dashing, direction we are heading to
         private float _dashTimer;
         private const float _dashTimerRef = .5f; // Duration of the dash in seconds
         private const float _dashSpeed = 3f;
@@ -40,7 +41,6 @@ namespace Pie.Character
             _jumpDetector.Tag = "Wall";
             _jumpDetector.TriggerOn.AddListener(new UnityAction(() =>
             {
-                Debug.Log("Outain");
                 _anim.SetBool("IsJumping", false);
                 _isGrounded = true;
             }));
@@ -61,6 +61,10 @@ namespace Pie.Character
             else
             {
                 _rb.velocity = new Vector2(_movement, _rb.velocity.y);
+                if (_movement != 0)
+                {
+                    transform.localScale = new Vector3(_movement > 0f ? 1f : -1f, 1f, 1f);
+                }
             }
             if (_jump)
             {
@@ -92,26 +96,21 @@ namespace Pie.Character
                 _dashTimer = _dashTimerRef; // Dashing
                 _anim.SetBool("IsDashing", true);
                 _rb.gravityScale = 0f; // We disable gravity while dashing
+                _dashDirection = _lastDirection;
             }
         }
 
         public void OnMove(InputAction.CallbackContext context)
         {
             var mov = context.ReadValue<Vector2>();
-            // If we are not dashing we set the dashing direction to the current one
-            if (_dashTimer <= 0f && context.action.phase == InputActionPhase.Performed)
-            {
-                _dashDirection = mov.normalized;
-            }
+            _lastDirection = mov.normalized;
             _movement = mov.x;
             if (_movement < 0f)
             {
-                transform.localScale = new Vector3(-1f, 1f, 1f);
                 _anim.SetBool("IsRunning", true);
             }
             else if (_movement > 0f)
             {
-                transform.localScale = new Vector3(1f, 1f, 1f);
                 _anim.SetBool("IsRunning", true);
             }
             else
